@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta content-type="text/html; charset=UTF-8" />
+<style type="text/css">
+* { margin:0; padding:0; }
+body { padding:4px; }
+h2 { margin: 8px; }
+table { width:800px; }
+tr,th,td { padding:2px; border:solid 1px; }
+hr { margin: 8px 0 8px 0; }
+input { padding: 0 2px; }
+.labelx { width:8em; float:left; text-align:right; }
+</style>
+</head>
+<body>
+<h2 id="top">イベント開催支援ツール：ATND（アテンド）</h2>
+<form id="search" onSubmit="return false">
+  <div><div class="labelx">YYMM:</div><input type="text" id="yymm" name="yymm" value="201111"></div>
+  <div><div class="labelx">ADDRESS:</div><input type="text" id="address" name="address" value="大阪"></div>
+  <div><div class="labelx">KEYWORD:</div><input type="text" id="keyword" name="keyword" value="perl"></div>
+  <div><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"></div>
+</form>
+<hr>
+<p><span id="startx" style="display:none">1</span><a id="nextx" href="#">次</a>&nbsp;&nbsp;<span id="results_start"></span>/<span id="results_available"></span></p>
+<table><tbody id="atnd">
+<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>
+</tbody></table>
+<a href="#top">先頭に戻る</a>
+<hr>
+
+<script type="text/javascript"
+ src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<script
+ src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
+
+<script type="text/javascript">
+$(function(){
+  $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}'>${title}</a></td><td>${address}</td></tr>");
+  var getJSON = function(query){
+    $.getJSON(
+      'http://api.atnd.org/events/?callback=?',
+      query,
+      function(json){
+        var events = json.events;
+        var regex = /$("#address").val()/;
+        for (var i = 0; i < events.length; i++) {
+          if (regex.test(address) != true){
+            delete events[i];
+          }
+        }
+        events.forEach(function(e){
+          e.started_at = e.started_at.substr(0,10);
+        });
+        events.sort(function(a,b){
+          var x = a.started_at;
+          var y = b.started_at;
+          return (x > y) ?  1 :
+                 (x < y) ? -1 :
+                            0 ;
+        });
+        var results_start = json.results_start +  " ～ " + (json.results_start + json.results_returned - 1);
+        $("#startx").text(json.results_start + json.results_returned);
+        $("#results_start").text(results_start);
+        $("#results_available").text(json.results_available);
+        $("#atnd").empty();
+        $.tmpl("jquery_section", events).appendTo("#atnd");
+      }
+    );
+  };
+  $("#submitx,#nextx").click(function(){
+    if (this.id == "submitx") {
+      $("#startx").text("1");
+    }
+    var query = {};
+    query.format = "jsonp";
+    query.start = $("#startx").text();
+    var keys = new Array(2);
+    keys[0] = $("#keyword").val();
+    keys[1] = $("#address").val();
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (key) {
+        if (query.keyword) {
+          query.keyword = query.keyword + "," + key;
+        }
+        else {
+          query.keyword = key;
+        }
+      }
+    }
+    query.ym = $("#yymm").val();
+    query.count = "50";
+    getJSON(query);
+    return false;
+  });
+});
+
+</script>
+
+</body>
+</html>
