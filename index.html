@@ -35,18 +35,22 @@ input { padding: 0 2px; }
  src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
 
 <script type="text/javascript">
+(function($){
 $(function(){
-  $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}'>${title}</a></td><td>${address}</td></tr>");
+  $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}' target='_blank'>${title}</a></td><td>${address}</td></tr>");
   var getJSON = function(query){
     $.getJSON(
       'http://api.atnd.org/events/?callback=?',
       query,
       function(json){
         var events = json.events;
-        var regex = /$("#address").val()/;
-        for (var i = 0; i < events.length; i++) {
-          if (regex.test(address) != true){
-            delete events[i];
+        var address = $("#address").val();
+        if (address.length) {
+          var regex = new RegExp(address);
+          for (var i = 0; i < events.length; i++) {
+            if (regex.test(events[i].address) != true){
+              delete events[i];
+            }
           }
         }
         events.forEach(function(e){
@@ -63,7 +67,7 @@ $(function(){
         $("#startx").text(json.results_start + json.results_returned);
         $("#results_start").text(results_start);
         $("#results_available").text(json.results_available);
-        $("#atnd").empty();
+        $("#atnd").empty().append($("<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>"));
         $.tmpl("jquery_section", events).appendTo("#atnd");
       }
     );
@@ -95,6 +99,7 @@ $(function(){
     return false;
   });
 });
+})(jQuery);
 
 </script>
 
