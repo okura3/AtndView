@@ -39,6 +39,12 @@ input { padding: 0 2px; }
 $(function(){
   $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}' target='_blank'>${title}</a></td><td>${address}</td></tr>");
   var getJSON = function(query){
+    $.ajaxSetup({
+      beforeSend: function(xhr){
+        var url = this.url;
+        this.url = url.replace(/%2C/g,',');
+      }
+    });
     $.getJSON(
       'http://api.atnd.org/events/?callback=?',
       query,
