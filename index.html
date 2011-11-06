@@ -32,79 +32,141 @@ input { padding: 0 2px; }
 <script type="text/javascript"
  src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
 <script
- src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
+ src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
 
 <script type="text/javascript">
 (function($){
-$(function(){
-  $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}' target='_blank'>${title}</a></td><td>${address}</td></tr>");
-  var getJSON = function(query){
+  $(function(){
+    var query = {};
+    var allEvents = new Array();
+    var events = new Array();
+    var request_ajax = 0;
+    var request_entries = 100;
+    var done_ajax = 0;
+
+    $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}' target='_blank'>${title}</a></td><td>${address}</td></tr>");
+
     $.ajaxSetup({
       beforeSend: function(xhr){
-        var url = this.url;
-        this.url = url.replace(/%2C/g,',');
+        this.url = this.url.replace(/%2C/g,',');
       }
     });
-    $.getJSON(
-      'http://api.atnd.org/events/?callback=?',
-      query,
-      function(json){
-        var events = json.events;
-        var address = $("#address").val();
-        if (address.length) {
-          var regex = new RegExp(address);
-          for (var i = 0; i < events.length; i++) {
-            if (regex.test(events[i].address) != true){
-              delete events[i];
-            }
+
+    var _getJSON = function(start, callback){
+      query.start = start;
+      $.getJSON(
+        'http://api.atnd.org/events/?callback=?',
+        query,
+        callback
+      );
+    };
+
+    $("#nextx").click(function(){
+        var start = $("#startx").text();
+        displayEvents(start, 50);
+        $("#startx").text(start + 50);
+    });
+
+    $("#submitx").click(function(){
+      query = {};
+      allEvents = new Array();
+      request_ajax = 0;
+      done_ajax = 0;
+      $("#startx").text("1");
+      query.count = request_entries;
+      query.format = "jsonp";
+      query.start = $("#startx").text();
+      var keys = new Array(2);
+      keys[0] = $("#keyword").val();
+      keys[1] = $("#address").val();
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        if (key) {
+          if (query.keyword) {
+            query.keyword = query.keyword + "," + key;
+          }
+          else {
+            query.keyword = key;
           }
         }
-        events.forEach(function(e){
-          e.started_at = e.started_at.substr(0,10);
-        });
-        events.sort(function(a,b){
-          var x = a.started_at;
-          var y = b.started_at;
-          return (x > y) ?  1 :
-                 (x < y) ? -1 :
-                            0 ;
-        });
-        var results_start = json.results_start +  " ～ " + (json.results_start + json.results_returned - 1);
-        $("#startx").text(json.results_start + json.results_returned);
-        $("#results_start").text(results_start);
-        $("#results_available").text(json.results_available);
-        $("#atnd").empty().append($("<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>"));
-        $.tmpl("jquery_section", events).appendTo("#atnd");
       }
-    );
-  };
-  $("#submitx,#nextx").click(function(){
-    if (this.id == "submitx") {
-      $("#startx").text("1");
-    }
-    var query = {};
-    query.format = "jsonp";
-    query.start = $("#startx").text();
-    var keys = new Array(2);
-    keys[0] = $("#keyword").val();
-    keys[1] = $("#address").val();
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i];
-      if (key) {
-        if (query.keyword) {
-          query.keyword = query.keyword + "," + key;
-        }
-        else {
-          query.keyword = key;
+      query.ym = $("#yymm").val();
+      _getJSON(1, first_entries);
+      return false;
+    });
+
+    var first_entries = function(json) {
+      done_ajax += 1;
+      var available = json.results_available;
+      var start = json.results_start;
+      var returned = json.results_returned;
+      var nstart = start + returned;
+      var wait = 0;
+      while( available >= nstart ) {
+        wait += 1000;
+        (function(start){
+          setTimeout(function(){_getJSON(start,continued_entries)}, wait);
+         })(nstart);
+        request_ajax++;
+        nstart += request_entries;
+      }
+      mergeEvents(json.events, start);
+      if (request_ajax <= done_ajax) {
+        displayEvents(1, 50);
+      }
+    };
+
+    var continued_entries = function(json) {
+      done_ajax += 1;
+      mergeEvents(json.events, json.result_start);
+      if (request_ajax <= done_ajax) {
+        displayEvents(1, 50);
+      }
+    };
+
+    var mergeEvents = function(entry, start) {
+      for (var i = 0; i < entry.length; i++) {
+        allEvents[start + i - 1] = entry[i];
+      }
+    };
+
+    var displayEvents = function(start, num) {
+      var address = $("#address").val();
+      if (address.length) {
+        var regex = new RegExp(address);
+        for (var i = 0; i < allEvents.length; i++) {
+          if (allEvents[i] && regex.test(allEvents[i].address) != true){
+            delete allEvents[i];
+          }
         }
       }
-    }
-    query.ym = $("#yymm").val();
-    query.count = "50";
-    getJSON(query);
-    return false;
+      allEvents.forEach(function(e){
+        e.started_at = e.started_at.substr(0,10);
+      });
+      allEvents.sort(function(a,b){
+        var x = a.started_at;
+        var y = b.started_at;
+        return (x > y) ?  1 :
+               (x < y) ? -1 :
+                          0 ;
+      });
+      /* var events = new Array(); */
+      events = new Array();
+      var j = 0;
+      var event;
+      for (var i = 0; i < allEvents.length; i++) {
+        if (event = allEvents[i]) {
+          events[j++] = event;
+        }
+      }
+      var results_start = start +  " ～ " + (start + num - 1);
+      $("#startx").text(start + num);
+      $("#results_start").text(start);
+      $("#results_available").text(events.length);
+      $("#atnd").empty().append($("<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>"));
+      $.tmpl("jquery_section", events).appendTo("#atnd");
+    };
   });
-});
 })(jQuery);
 
 </script>
