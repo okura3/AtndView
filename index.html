@@ -112,14 +112,24 @@ input { padding: 0 2px; }
       if (address.length) {
         var regex = new RegExp(address);
         for (var i = 0; i < allEvents.length; i++) {
-          if (allEvents[i] && regex.test(allEvents[i].address) != true){
+          var e = allEvents[i];
+          if (e && regex.test(e.address) != true){
             delete allEvents[i];
+          }
+          else {
+            allEvents[i].started_at = e.started_at.substr(0,10);
           }
         }
       }
-      allEvents.forEach(function(e){
+      /*
+       * allEvents.forEach(function(e){
+       *  e.started_at = e.started_at.substr(0,10);
+       * });
+       */
+      for (var i = 0; i < allEvents.length; i++) {
+        var e = allEvents[i];
         e.started_at = e.started_at.substr(0,10);
-      });
+      }
       allEvents.sort(function(a,b){
         var x = a.started_at;
         var y = b.started_at;
