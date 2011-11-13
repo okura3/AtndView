@@ -2,31 +2,38 @@
 <html lang="ja">
 <head>
 <meta content-type="text/html; charset=UTF-8" />
+<title>ATND（アテンド）検索</title>
 <style type="text/css">
 * { margin:0; padding:0; }
-body { padding:4px; }
+body { width:800px; padding:4px; }
 h2 { margin: 8px; }
-table { width:800px; }
+table { width:792px; }
 tr,th,td { padding:2px; border:solid 1px; }
 hr { margin: 8px 0 8px 0; }
 input { padding: 0 2px; }
 .labelx { width:8em; float:left; text-align:right; }
+.event_index { width:40px; }
+.event_started_at { width:92px; }
+.event_title { width:390px; }
+.event_address { width:240px; }
+.right { text-align:right; }
 </style>
 </head>
 <body>
-<h2 id="top">イベント開催支援ツール：ATND（アテンド）</h2>
+<h2 id="top">イベント開催支援ツール：ATND（アテンド）検索</h2>
 <form id="search" onSubmit="return false">
   <div><div class="labelx">YYMM:</div><input type="text" id="yymm" name="yymm" value="201111"></div>
   <div><div class="labelx">ADDRESS:</div><input type="text" id="address" name="address" value="大阪"></div>
   <div><div class="labelx">KEYWORD:</div><input type="text" id="keyword" name="keyword" value="perl"></div>
   <div><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"></div>
 </form>
-<hr>
+<div class="labelx">&nbsp;</div><p id="notes">&nbsp;</p>
+<hr style="clear:both">
 <p><span id="startx" style="display:none">1</span>
 <a id="prevx" href="#">前</a>&nbsp;&nbsp;
 <a id="nextx" href="#">次</a>&nbsp;&nbsp;<span id="results_start"></span>/<span id="results_available"></span></p>
 <table><tbody id="atnd">
-<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>
+<tr><th class="event_index">項番</th><th class="event_started_at">開催日</th><th class="event_title">タイトル</th><th class="event_address">場所</th></tr>
 </tbody></table>
 <a href="#top">先頭に戻る</a>
 <hr>
@@ -37,17 +44,16 @@ input { padding: 0 2px; }
  src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
 
 <script type="text/javascript">
-var _events = new Array();
 (function($){
   $(function(){
     var query = {};
     var allEvents = new Array();
-    /* var _events = new Array(); */
+    var _events = new Array();
     var request_ajax = 0;
     var request_entries = 100;
     var done_ajax = 0;
 
-    $.template("jquery_section", "<tr><td>${started_at}</td><td><a href='${event_url}' target='_blank'>${title}</a></td><td>${address}</td></tr>");
+    $.template("jquery_section", '<tr><td class="right">${event_index}</td><td>${started_at}</td><td><a href="${event_url}" target="_blank">${title}</a></td><td>${address}</td></tr>');
 
     $.ajaxSetup({
       beforeSend: function(xhr){
@@ -62,6 +68,21 @@ var _events = new Array();
         query,
         callback
       );
+    };
+
+    var displayRange = function(start, num){
+      var range = new Array();
+      /* var _events = this._events; */
+      for (var i = 0; i < num; i++) {
+        var j = start + i - 1;
+        if (j >= _events.length) { break; }
+        range[i] = _events[j];
+      }
+      $("#startx").text(start + num);
+      $("#results_start").text(start);
+      $("#results_available").text(_events.length);
+      $("#atnd").empty().append($('<tr><th class="event_index">項番</th><th clasclass="event_started_at">開催日</th><th class="event_title">タイトル</th><th class="event_address">場所</th></tr>'));
+      $.tmpl("jquery_section", range).appendTo("#atnd");
     };
 
     $("#nextx").click(function(){
@@ -79,63 +100,6 @@ var _events = new Array();
         displayRange(start, 50);
         $("#startx").text(start + 50);
     });
-
-    $("#submitx").click(function(){
-      query = {};
-      allEvents = new Array();
-      request_ajax = 0;
-      done_ajax = 0;
-      $("#startx").text("1");
-      query.count = request_entries;
-      query.format = "jsonp";
-      query.start = 0 + $("#startx").text() - 0;
-      var keys = new Array(2);
-      keys[0] = $("#keyword").val();
-      keys[1] = $("#address").val();
-      for (var i = 0; i < keys.length; i++) {
-        var key = keys[i];
-        if (key) {
-          if (query.keyword) {
-            query.keyword = query.keyword + "," + key;
-          }
-          else {
-            query.keyword = key;
-          }
-        }
-      }
-      query.ym = $("#yymm").val();
-      _getJSON(1, first_entries);
-      return false;
-    });
-
-    var first_entries = function(json) {
-      done_ajax += 1;
-      var available = json.results_available;
-      var start = json.results_start;
-      var returned = json.results_returned;
-      var nstart = start + returned;
-      var wait = 0;
-      while( available >= nstart ) {
-        wait += 1000;
-        (function(start){
-          setTimeout(function(){_getJSON(start,continued_entries)}, wait);
-         })(nstart);
-        request_ajax++;
-        nstart += request_entries;
-      }
-      mergeEvents(json.events, start);
-      if (request_ajax <= done_ajax) {
-        displayEvents(1, 50);
-      }
-    };
-
-    var continued_entries = function(json) {
-      done_ajax += 1;
-      mergeEvents(json.events, json.result_start);
-      if (request_ajax <= done_ajax) {
-        displayEvents(1, 50);
-      }
-    };
 
     var mergeEvents = function(entry, start) {
       for (var i = 0; i < entry.length; i++) {
@@ -168,31 +132,76 @@ var _events = new Array();
       var event;
       for (var i = 0; i < allEvents.length; i++) {
         if (event = allEvents[i]) {
+          event.event_index = 1 + j;
           _events[j++] = event;
         }
       }
-      var results_start = start +  " ～ " + (start + num - 1);
-      $("#startx").text(start + num);
-      $("#results_start").text(start);
-      $("#results_available").text(_events.length);
-      $("#atnd").empty().append($("<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>"));
-      $.tmpl("jquery_section", _events).appendTo("#atnd");
+      displayRange(start, num);
     };
 
-    var displayRange = function(start, num){
-      var range = new Array();
-      var _events = this._events;
-      for (var i = 0; i < num; i++) {
-        var j = start + i - 1;
-        if (j >= _events.length) { break; }
-        range[i] = _events[j];
+    var continued_entries = function(json) {
+      done_ajax += 1;
+      mergeEvents(json.events, json.results_start);
+      if (request_ajax <= done_ajax) {
+        displayEvents(1, 50);
       }
-      $("#startx").text(start + num);
-      $("#results_start").text(start);
-      $("#results_available").text(_events.length);
-      $("#atnd").empty().append($("<tr><th>開催日</th><th>タイトル</th><th>場所</th></tr>"));
-      $.tmpl("jquery_section", range).appendTo("#atnd");
     };
+
+    var first_entries = function(json) {
+      done_ajax += 1;
+      var available = json.results_available;
+      var start = json.results_start;
+      var returned = json.results_returned;
+      var nstart = start + returned;
+      var wait = 0;
+      $("#notes").text("");
+      while( available >= nstart ) {
+        if (nstart > 300) {
+          $("#notes").text("件数(" + available + ")が多く、すべてのイベントを抽出できません");
+          break;
+        }
+        wait += 1000;
+        request_ajax++;
+        (function(start){
+          setTimeout(function(){_getJSON(start,continued_entries)}, wait);
+         })(nstart);
+        nstart += request_entries;
+      }
+      mergeEvents(json.events, start);
+      if (request_ajax <= done_ajax) {
+        displayEvents(1, 50);
+      }
+    };
+
+    $("#submitx").click(function(){
+      query = {};
+      allEvents = new Array();
+      request_ajax = 0;
+      done_ajax = 0;
+      $("#startx").text("1");
+      query.count = request_entries;
+      query.format = "jsonp";
+      query.start = 0 + $("#startx").text() - 0;
+      var keys = new Array(2);
+      keys[0] = $("#keyword").val();
+      keys[1] = $("#address").val();
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        if (key) {
+          if (query.keyword) {
+            query.keyword = query.keyword + "," + key;
+          }
+          else {
+            query.keyword = key;
+          }
+        }
+      }
+      query.ym = $("#yymm").val();
+      request_ajax++;
+      _getJSON(1, first_entries);
+      return false;
+    });
+
   });
 })(jQuery);
 
