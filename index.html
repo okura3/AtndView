@@ -11,7 +11,7 @@ table { width:792px; }
 tr,th,td { padding:2px; border:solid 1px; }
 hr { margin: 8px 0 8px 0; }
 input { padding: 0 2px; }
-.labelx { width:8em; float:left; text-align:right; }
+.labelx { width:10em; float:left; text-align:right; }
 .event_index { width:40px; }
 .event_started_at { width:92px; }
 .event_title { width:390px; }
@@ -20,11 +20,11 @@ input { padding: 0 2px; }
 </style>
 </head>
 <body>
-<h2 id="top">イベント開催支援ツール：ATND（アテンド）検索</h2>
+<h2 id="top">イベント開催支援ツール：<a href="http://atnd.org/" target="_blank">ATND（アテンド）</a>検索</h2>
 <form id="search" onSubmit="return false">
-  <div><div class="labelx">YYMM:</div><input type="text" id="yymm" name="yymm" value="201111"></div>
-  <div><div class="labelx">ADDRESS:</div><input type="text" id="address" name="address" value="大阪"></div>
-  <div><div class="labelx">KEYWORD:</div><input type="text" id="keyword" name="keyword" value="perl"></div>
+  <div><div class="labelx">開催月(YYYYMM):</div><input type="text" id="yymm" name="yymm" value=""></div>
+  <div><div class="labelx">開催地(都道府県):</div><input type="text" id="address" name="address" value="大阪"></div>
+  <div><div class="labelx">検索ワード:</div><input type="text" id="keyword" name="keyword" value=""></div>
   <div><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"></div>
 </form>
 <div class="labelx">&nbsp;</div><p id="notes">&nbsp;</p>
@@ -52,6 +52,12 @@ input { padding: 0 2px; }
     var request_ajax = 0;
     var request_entries = 100;
     var done_ajax = 0;
+
+    var today = new Date;
+    var mm   = 1 + today.getMonth();
+    if ( mm < 10 ) { mm = "0" + mm; }
+    var yymm = "" + today.getFullYear() + mm;
+    $("#yymm").val(yymm);
 
     $.template("jquery_section", '<tr><td class="right">${event_index}</td><td>${started_at}</td><td><a href="${event_url}" target="_blank">${title}</a></td><td>${address}</td></tr>');
 
@@ -112,12 +118,8 @@ input { padding: 0 2px; }
       if (address.length) {
         var regex = new RegExp(address);
         for (var i = 0; i < allEvents.length; i++) {
-          var e = allEvents[i];
-          if (e && regex.test(e.address) != true){
+          if (regex.test(allEvents[i].address) != true){
             delete allEvents[i];
-          }
-          else {
-            allEvents[i].started_at = e.started_at.substr(0,10);
           }
         }
       }
@@ -128,7 +130,9 @@ input { padding: 0 2px; }
        */
       for (var i = 0; i < allEvents.length; i++) {
         var e = allEvents[i];
-        e.started_at = e.started_at.substr(0,10);
+        if ( e ) {
+          e.started_at = e.started_at.substr(0,10);
+        }
       }
       allEvents.sort(function(a,b){
         var x = a.started_at;
