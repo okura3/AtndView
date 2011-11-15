@@ -39,7 +39,7 @@ input { padding: 0 2px; }
 <hr>
 
 <script type="text/javascript"
- src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+ src="http://code.jquery.com/jquery-1.7.min.js"></script>
 <script
  src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
 
@@ -87,11 +87,11 @@ input { padding: 0 2px; }
       $("#startx").text(start + num);
       $("#results_start").text(start);
       $("#results_available").text(_events.length);
-      $("#atnd").empty().append($('<tr><th class="event_index">項番</th><th clasclass="event_started_at">開催日</th><th class="event_title">タイトル</th><th class="event_address">場所</th></tr>'));
+      $("#atnd tr:not(tr:first)").remove("tr");
       $.tmpl("jquery_section", range).appendTo("#atnd");
     };
 
-    $("#nextx").click(function(){
+    $(document).on('click', "a#nextx", function(){
         var start = 0 + $("#startx").text() - 0;
         displayRange(start, 50);
         if (start + 50 - 1 < _events.length) {
@@ -100,7 +100,7 @@ input { padding: 0 2px; }
         $("#startx").text(start);
     });
 
-    $("#prevx").click(function(){
+    $(document).on('click', "a#prevx", function(){
         var start = 0 + $("#startx").text() - 50;
         if (start < 1) { start = 1; }
         displayRange(start, 50);
@@ -123,11 +123,6 @@ input { padding: 0 2px; }
           }
         }
       }
-      /*
-       * allEvents.forEach(function(e){
-       *  e.started_at = e.started_at.substr(0,10);
-       * });
-       */
       for (var i = 0; i < allEvents.length; i++) {
         var e = allEvents[i];
         if ( e ) {
@@ -187,7 +182,7 @@ input { padding: 0 2px; }
       }
     };
 
-    $("#submitx").click(function(){
+    $(document).on('click', 'input#submitx', function(){
       query = {};
       allEvents = new Array();
       request_ajax = 0;
