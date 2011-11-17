@@ -16,8 +16,12 @@ input { padding: 0 2px; }
 .event_started_at { width:92px; }
 .event_title { width:390px; }
 .event_address { width:240px; }
-.right { text-align:right; }
+.right { vertical-align:bottom; }
+#submitx { float:left; }
+#notes { height:19px; padding: 3px 0; }
+#progress { height:3px; }
 </style>
+<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
 </head>
 <body>
 <h2 id="top">イベント開催支援ツール：<a href="http://atnd.org/" target="_blank">ATND（アテンド）</a>検索</h2>
@@ -25,10 +29,9 @@ input { padding: 0 2px; }
   <div><div class="labelx">開催月(YYYYMM):</div><input type="text" id="yymm" name="yymm" value=""></div>
   <div><div class="labelx">開催地(都道府県):</div><input type="text" id="address" name="address" value="大阪"></div>
   <div><div class="labelx">検索ワード:</div><input type="text" id="keyword" name="keyword" value=""></div>
-  <div><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"></div>
+  <div><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"><p id="notes">&nbsp;</p></div>
 </form>
-<div class="labelx">&nbsp;</div><p id="notes">&nbsp;</p>
-<hr style="clear:both">
+<div class="ui-widget-default" style="padding:4px 0; clear:both"><div id="progress"></div></div>
 <p><span id="startx" style="display:none">1</span>
 <a id="prevx" href="#">前</a>&nbsp;&nbsp;
 <a id="nextx" href="#">次</a>&nbsp;&nbsp;<span id="results_start"></span>/<span id="results_available"></span></p>
@@ -39,7 +42,9 @@ input { padding: 0 2px; }
 <hr>
 
 <script type="text/javascript"
- src="http://code.jquery.com/jquery-1.7.min.js"></script>
+ src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+<script type="text/javascript"
+ src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js"></script>
 <script
  src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
 
@@ -51,6 +56,8 @@ input { padding: 0 2px; }
     var _events = new Array();
     var request_ajax = 0;
     var request_entries = 100;
+    var entries_per_page = 20;
+    var max_entries_per_submit = 300;
     var done_ajax = 0;
 
     var today = new Date;
@@ -58,6 +65,8 @@ input { padding: 0 2px; }
     if ( mm < 10 ) { mm = "0" + mm; }
     var yymm = "" + today.getFullYear() + mm;
     $("#yymm").val(yymm);
+
+    $("div#progress").progressbar();
 
     $.template("jquery_section", '<tr><td class="right">${event_index}</td><td>${started_at}</td><td><a href="${event_url}" target="_blank">${title}</a></td><td>${address}</td></tr>');
 
@@ -78,13 +87,12 @@ input { padding: 0 2px; }
 
     var displayRange = function(start, num){
       var range = new Array();
-      /* var _events = this._events; */
       for (var i = 0; i < num; i++) {
         var j = start + i - 1;
         if (j >= _events.length) { break; }
         range[i] = _events[j];
       }
-      $("#startx").text(start + num);
+      $("#startx").text(start);
       $("#results_start").text(start);
       $("#results_available").text(_events.length);
       $("#atnd tr:not(tr:first)").remove("tr");
@@ -92,19 +100,20 @@ input { padding: 0 2px; }
     };
 
     $(document).on('click', "a#nextx", function(){
-        var start = 0 + $("#startx").text() - 0;
-        displayRange(start, 50);
-        if (start + 50 - 1 < _events.length) {
-          start += 50;
+        var start = 1 * $("#startx").text() + entries_per_page;
+        if ( start < (1 + _events.length) ) {
+          $("#startx").text(start);
+          displayRange(start, entries_per_page);
         }
-        $("#startx").text(start);
     });
 
     $(document).on('click', "a#prevx", function(){
-        var start = 0 + $("#startx").text() - 50;
-        if (start < 1) { start = 1; }
-        displayRange(start, 50);
-        $("#startx").text(start + 50);
+        var start = 1 * $("#startx").text() - entries_per_page;
+        if (start < 1 ) {
+          start = 1;
+        }
+        $("#startx").text(start);
+        displayRange(start, entries_per_page);
     });
 
     var mergeEvents = function(entry, start) {
@@ -151,8 +160,9 @@ input { padding: 0 2px; }
     var continued_entries = function(json) {
       done_ajax += 1;
       mergeEvents(json.events, json.results_start);
+      $("div#progress").progressbar("option", "value", 100 * done_ajax/request_ajax);
       if (request_ajax <= done_ajax) {
-        displayEvents(1, 50);
+        displayEvents(1, entries_per_page);
       }
     };
 
@@ -165,7 +175,7 @@ input { padding: 0 2px; }
       var wait = 0;
       $("#notes").text("");
       while( available >= nstart ) {
-        if (nstart > 300) {
+        if (nstart > max_entries_per_submit) {
           $("#notes").text("件数(" + available + ")が多く、すべてのイベントを抽出できません");
           break;
         }
@@ -177,8 +187,9 @@ input { padding: 0 2px; }
         nstart += request_entries;
       }
       mergeEvents(json.events, start);
+      $("div#progress").progressbar("option", "value", 100 * done_ajax/request_ajax);
       if (request_ajax <= done_ajax) {
-        displayEvents(1, 50);
+        displayEvents(1, entries_per_page);
       }
     };
 
