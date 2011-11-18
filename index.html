@@ -194,6 +194,7 @@ input { padding: 0 2px; }
     };
 
     $(document).on('click', 'input#submitx', function(){
+      $("div#progress").progressbar("option", "value", 0);
       query = {};
       allEvents = new Array();
       request_ajax = 0;
