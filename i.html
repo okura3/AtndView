@@ -3,55 +3,50 @@
 <head>
 <meta content-type="text/html; charset=UTF-8" />
 <title>ATND（アテンド）検索</title>
+<link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css">
 <style type="text/css">
 * { margin:0; padding:0; }
 body { width:800px; padding:4px; }
 h2 { margin: 8px; }
-table { width:792px; }
+table { width:100%; }
 tr,th,td { padding:2px; border:solid 1px; }
 hr { margin: 8px 0 8px 0; }
-input { padding: 0 2px; }
-.labelx { width:10em; float:left; text-align:right; }
-.event_index { width:40px; }
-.event_started_at { width:92px; }
-.event_title { width:390px; }
-.event_address { width:240px; }
-.right { vertical-align:bottom; }
+input.ui-input-text { padding: 0 2px; width:300px; }
+//.labelx { width:10em; float:left; text-align:right; margin:0 5px; }
+.event_index { width:35px; text-align:right; vertical-align:middle; }
+.event_started_at { width:60px; }
+.event_title { width:240; }
+.event_address { width:80; }
 .br { clear:both; }
-#submitx { float:left; }
+#submitx { float:left; position:relative; }
 #notes { height:19px; padding: 3px 0; }
-#progress { height:3px; }
 </style>
-<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
-<!-- link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css" -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+<script src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script>
 </head>
 <body>
-<h2 id="top">イベント開催支援ツール：<a href="http://atnd.org/" target="_blank">ATND（アテンド）</a>検索</h2>
-<form id="search" onSubmit="return false">
+<div data-role="page">
+<h2 name="_top">イベント開催支援ツール：<a href="http://atnd.org/" target="_blank">ATND（アテンド）</a>検索</h2>
+<form action="#" id="search" data-ajax="false">
   <div class="br"><div class="labelx">開催月(YYYYMM):</div><input type="text" id="yymm" name="yymm" value=""></div>
   <div class="br"><div class="labelx">開催地(都道府県):</div><input type="text" id="address" name="address" value="大阪"></div>
   <div class="br"><div class="labelx">検索キーワード:</div><input type="text" id="keyword" name="keyword" value=""></div>
-  <div class="br"><div class="labelx">&nbsp;</div><input type="submit" id="submitx" name="submitx" value="検索"><p id="notes">&nbsp;</p></div>
+  <div class="br"><div class="labelx">&nbsp;</div><input type="button" id="submitx" name="submitx" value="検索"><p id="notes">&nbsp;</p></div>
 </form>
-<div class="ui-widget-default" style="padding:4px 0; clear:both"><div id="progress"></div></div>
 <p><span id="startx" style="display:none">1</span>
 <a id="prevx" href="#">前</a>&nbsp;&nbsp;
 <a id="nextx" href="#">次</a>&nbsp;&nbsp;<span id="results_start"></span>/<span id="results_available"></span></p>
 <table><tbody id="atnd">
 <tr><th class="event_index">項番</th><th class="event_started_at">開催日</th><th class="event_title">タイトル</th><th class="event_address">場所</th></tr>
 </tbody></table>
-<a href="#top">先頭に戻る</a>
+<a href="#_top">先頭に戻る</a>
 <hr>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js"></script>
-<!-- script src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script -->
+</div>
 <script src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script> 
-
 <script type="text/javascript">
 (function($){
+  $.mobile.ajaxEnabled = false;
   $(function(){
-    // $.mobile.ajaxEnabled = false;
     var query = {};
     var allEvents = new Array();
     var _events = new Array();
@@ -67,9 +62,7 @@ input { padding: 0 2px; }
     var yymm = "" + today.getFullYear() + mm;
     $("#yymm").val(yymm);
 
-    $("div#progress").progressbar();
-
-    $.template("jquery_section", '<tr><td class="right">${event_index}</td><td>${started_at}</td><td><a href="${event_url}" target="_blank">${title}</a></td><td>${address}</td></tr>');
+    $.template("jquery_section", '<tr><td class="event_index">${event_index}</td><td>${started_at}</td><td><a href="${event_url}" target="_blank">${title}</a></td><td>${address}</td></tr>');
 
     $.ajaxSetup({
       beforeSend: function(xhr){
@@ -100,7 +93,7 @@ input { padding: 0 2px; }
       $.tmpl("jquery_section", range).appendTo("#atnd");
     };
 
-    $(document).on('click', "a#nextx", function(){
+    $(document).on('click', "#nextx", function(){
         var start = 1 * $("#startx").text() + entries_per_page;
         if ( start < (1 + _events.length) ) {
           $("#startx").text(start);
@@ -108,7 +101,7 @@ input { padding: 0 2px; }
         }
     });
 
-    $(document).on('click', "a#prevx", function(){
+    $(document).on('click', "#prevx", function(){
         var start = 1 * $("#startx").text() - entries_per_page;
         if (start < 1 ) {
           start = 1;
@@ -161,7 +154,6 @@ input { padding: 0 2px; }
     var continued_entries = function(json) {
       done_ajax += 1;
       mergeEvents(json.events, json.results_start);
-      $("div#progress").progressbar("option", "value", 100 * done_ajax/request_ajax);
       if (request_ajax <= done_ajax) {
         displayEvents(1, entries_per_page);
       }
@@ -188,14 +180,11 @@ input { padding: 0 2px; }
         nstart += request_entries;
       }
       mergeEvents(json.events, start);
-      $("div#progress").progressbar("option", "value", 100 * done_ajax/request_ajax);
       if (request_ajax <= done_ajax) {
         displayEvents(1, entries_per_page);
       }
     };
-
-    $(document).on('click', 'input#submitx', function(){
-      $("div#progress").progressbar("option", "value", 0);
+    $(document).on('click', '#search', function(){
       query = {};
       allEvents = new Array();
       request_ajax = 0;
@@ -223,11 +212,9 @@ input { padding: 0 2px; }
       _getJSON(1, first_entries);
       return false;
     });
-
   });
 })(jQuery);
 
 </script>
-
 </body>
 </html>
